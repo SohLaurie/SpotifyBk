@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema({
     select: false, // Don't return password by default
   },
   favorites: {
-    type: [String], // Array of Spotify Track IDs
+    type: [Object], // Array of Song objects with metadata
     default: [],
   },
 }, {

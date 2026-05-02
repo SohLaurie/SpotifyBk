@@ -12,7 +12,7 @@ const playlistSchema = new mongoose.Schema({
     trim: true,
   },
   tracks: {
-    type: [String], // Array of Spotify Track IDs
+    type: [Object], // Array of Song objects with metadata
     default: [],
   },
 }, {

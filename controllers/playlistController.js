@@ -94,37 +94,80 @@ const deletePlaylist = async (req, res) => {
 const getFavorites = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    res.json(user.favorites);
+    // Filter out any old legacy string IDs that might crash the new frontend
+    const validFavorites = user.favorites.filter((f) => typeof f === 'object' && f !== null);
+    res.json(validFavorites);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
 // @desc    Add or remove a track from favorites
-// @route   POST /api/favorites
+// @route   POST /api/playlists/favorites
 // @access  Private
 const toggleFavorite = async (req, res) => {
   try {
-    const { trackId } = req.body;
+    const song = req.body;
 
-    if (!trackId) {
-      return res.status(400).json({ message: 'Please provide a track ID' });
+    if (!song || !song.id) {
+      return res.status(400).json({ message: 'Please provide a song with an ID' });
     }
 
     const user = await User.findById(req.user.id);
 
-    const index = user.favorites.indexOf(trackId);
+    // Find index, handling both old string IDs and new song objects
+    const index = user.favorites.findIndex((s) => {
+      if (typeof s === 'string') return s === song.id;
+      return s && s.id === song.id;
+    });
+
     if (index > -1) {
       // Remove from favorites
       user.favorites.splice(index, 1);
     } else {
-      // Add to favorites
-      user.favorites.push(trackId);
+      // Add to favorites (full object)
+      user.favorites.push(song);
     }
 
     await user.save();
 
     res.json(user.favorites);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @desc    Add a track to a playlist
+// @route   POST /api/playlists/:id/add
+// @access  Private
+const addTrackToPlaylist = async (req, res) => {
+  try {
+    const song = req.body;
+    const { id } = req.params;
+
+    if (!song || !song.id) {
+      return res.status(400).json({ message: 'Please provide a song with an ID' });
+    }
+
+    const playlist = await Playlist.findById(id);
+
+    if (!playlist) {
+      return res.status(404).json({ message: 'Playlist not found' });
+    }
+
+    // Check for user
+    if (playlist.user_id.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'User not authorized' });
+    }
+
+    // Check if already in playlist
+    const exists = playlist.tracks.some((t) => t.id === song.id);
+    if (!exists) {
+      playlist.tracks.push(song);
+      await playlist.save();
+    }
+
+    res.json(playlist);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -137,4 +180,5 @@ module.exports = {
   deletePlaylist,
   getFavorites,
   toggleFavorite,
+  addTrackToPlaylist,
 };
