@@ -173,6 +173,56 @@ const addTrackToPlaylist = async (req, res) => {
   }
 };
 
+// @desc    Get a single playlist by ID
+// @route   GET /api/playlists/:id
+// @access  Private
+const getPlaylistById = async (req, res) => {
+  try {
+    const playlist = await Playlist.findById(req.params.id);
+
+    if (!playlist) {
+      return res.status(404).json({ message: 'Playlist not found' });
+    }
+
+    // Check for user
+    if (playlist.user_id.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'User not authorized' });
+    }
+
+    res.json(playlist);
+  } catch (error) {
+    res.status(500).json({ message: 'Server server error', error: error.message });
+  }
+};
+
+// @desc    Remove a track from a playlist
+// @route   DELETE /api/playlists/:id/tracks/:trackId
+// @access  Private
+const removeTrackFromPlaylist = async (req, res) => {
+  try {
+    const playlist = await Playlist.findById(req.params.id);
+
+    if (!playlist) {
+      return res.status(404).json({ message: 'Playlist not found' });
+    }
+
+    // Check for user
+    if (playlist.user_id.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'User not authorized' });
+    }
+
+    // Remove the track
+    playlist.tracks = playlist.tracks.filter(
+      (track) => track.id.toString() !== req.params.trackId
+    );
+
+    await playlist.save();
+    res.json(playlist);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 module.exports = {
   getPlaylists,
   createPlaylist,
@@ -181,4 +231,6 @@ module.exports = {
   getFavorites,
   toggleFavorite,
   addTrackToPlaylist,
+  getPlaylistById,
+  removeTrackFromPlaylist
 };

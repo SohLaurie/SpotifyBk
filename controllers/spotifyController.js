@@ -14,6 +14,11 @@ const getSpotifyAccessToken = async () => {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
   
+  if (!clientId || !clientSecret) {
+    console.error('Spotify credentials missing in .env file');
+    throw new Error('Spotify credentials missing');
+  }
+  
   const authOptions = {
     method: 'post',
     url: 'https://accounts.spotify.com/api/token',
@@ -50,7 +55,10 @@ const searchSpotify = async (req, res) => {
     const token = await getSpotifyAccessToken();
     const searchType = type || 'track,artist,album';
 
-    const response = await axios.get(`https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=${searchType}`, {
+    const searchUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=${searchType}`;
+    console.log('Fetching Spotify Search:', searchUrl);
+    
+    const response = await axios.get(searchUrl, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -59,7 +67,11 @@ const searchSpotify = async (req, res) => {
     res.json(response.data);
   } catch (error) {
     console.error('Spotify Search Error:', error.response ? error.response.data : error.message);
-    res.status(500).json({ message: 'Error searching Spotify' });
+    res.status(500).json({ 
+      message: 'Error searching Spotify', 
+      error: error.message,
+      details: error.response ? error.response.data : null
+    });
   }
 };
 
@@ -127,9 +139,55 @@ const getLyrics = async (req, res) => {
   }
 };
 
+const getAlbumTracks = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const token = await getSpotifyAccessToken();
+
+    // Fetch the FULL album object, which contains tracks, images, and artist info
+    const response = await axios.get(`https://api.spotify.com/v1/albums/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('Spotify Album Tracks Error:', error.response ? error.response.data : error.message);
+    res.status(500).json({ message: 'Error fetching album tracks from Spotify' });
+  }
+};
+
+// @desc    Get related artists from Spotify
+// @route   GET /api/spotify/artist/:id/related-artists
+// @access  Private
+const getRelatedArtists = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const token = await getSpotifyAccessToken();
+
+    const response = await axios.get(`https://api.spotify.com/v1/artists/${id}/related-artists`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    if (error.response && error.response.status === 403) {
+      console.warn(`Spotify Related Artists Forbidden (403) for ID ${req.params.id}. Returning empty array.`);
+      return res.json({ artists: [] });
+    }
+    console.error('Spotify Related Artists Error:', error.response ? error.response.data : error.message);
+    res.status(500).json({ message: 'Error fetching related artists from Spotify' });
+  }
+};
+
 module.exports = {
   searchSpotify,
   getTrackDetails,
   getArtistDetails,
-  getLyrics
+  getAlbumTracks,
+  getLyrics,
+  getRelatedArtists
 };

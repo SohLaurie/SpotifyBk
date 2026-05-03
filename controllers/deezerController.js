@@ -48,6 +48,31 @@ const getDeezerTrack = async (req, res) => {
   }
 };
 
+const searchDeezer = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) return res.status(400).json({ message: 'Missing query' });
+
+    const response = await axios.get(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=30`);
+    const tracks = (response.data.data || []).map(track => ({
+      id: `dz_${track.id}`,
+      title: track.title,
+      artist: track.artist.name,
+      albumName: track.album.title,
+      coverUrl: track.album.cover_medium,
+      duration: track.duration,
+      previewUrl: track.preview,
+      type: 'track'
+    }));
+
+    res.json({ tracks });
+  } catch (error) {
+    console.error('Deezer Search Error:', error.message);
+    res.status(500).json({ message: 'Error searching Deezer' });
+  }
+};
+
 module.exports = {
-  getDeezerTrack
+  getDeezerTrack,
+  searchDeezer
 };

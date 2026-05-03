@@ -12,19 +12,31 @@ const searchYoutube = async (req, res) => {
     }
 
     // Search YouTube for the song
-    // We add "topic" or "official audio" to the search to get better results
-    const r = await ytSearch(q + ' official audio');
+    // We add "audio" to the search to get better results
+    const r = await ytSearch(q + ' audio');
     const videos = r.videos;
 
     if (videos && videos.length > 0) {
-      const video = videos[0];
-      console.log(`YouTube Search Result: ${video.title} (${video.videoId})`);
+      // Find the best match: prioritize "Audio", "Topic", avoid "Official Video"
+      let bestVideo = videos[0];
+      for (let i = 0; i < Math.min(videos.length, 5); i++) {
+        const v = videos[i];
+        const titleL = v.title.toLowerCase();
+        const authorL = v.author.name.toLowerCase();
+        
+        if ((titleL.includes('audio') || authorL.includes('topic') || titleL.includes('lyric')) && !titleL.includes('official video')) {
+          bestVideo = v;
+          break;
+        }
+      }
+
+      console.log(`YouTube Search Result: ${bestVideo.title} (${bestVideo.videoId})`);
       res.json({
-        videoId: video.videoId,
-        title: video.title,
-        duration: video.duration.timestamp,
-        author: video.author.name,
-        thumbnail: video.thumbnail
+        videoId: bestVideo.videoId,
+        title: bestVideo.title,
+        duration: bestVideo.duration.timestamp,
+        author: bestVideo.author.name,
+        thumbnail: bestVideo.thumbnail
       });
     } else {
       res.status(404).json({ message: 'No video found on YouTube' });

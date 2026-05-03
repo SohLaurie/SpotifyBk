@@ -15,6 +15,10 @@ const playlistSchema = new mongoose.Schema({
     type: [Object], // Array of Song objects with metadata
     default: [],
   },
+  coverUrl: {
+    type: String,
+    default: '',
+  },
 }, {
   timestamps: true,
 });
