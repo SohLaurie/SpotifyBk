@@ -139,6 +139,17 @@ const getLyrics = async (req, res) => {
   }
 };
 
+// @desc    Get tracks for an album from Spotify
+// @route   GET /api/spotify/album/:id
+// @access  Private
+//
+// FRONTEND CONNECTION:
+// Called by `ApiService.getAlbumTracks` in Dart when the user navigates to an `AlbumScreen`.
+// We fetch the FULL album object from Spotify instead of just the tracks.
+// This is critical because the individual track objects returned by this endpoint 
+// do NOT contain their own cover images. By fetching the full album, we can 
+// extract the album cover (`images[0].url`) and pass it down to the frontend, 
+// ensuring the `NowPlayingScreen` displays the correct album art when playing a song.
 const getAlbumTracks = async (req, res) => {
   try {
     const { id } = req.params;

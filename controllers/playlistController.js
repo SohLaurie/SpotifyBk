@@ -4,6 +4,11 @@ const User = require('../models/User');
 // @desc    Get all playlists for the logged in user
 // @route   GET /api/playlists
 // @access  Private
+//
+// FRONTEND CONNECTION:
+// This is the main data source for the `LibraryScreen` in Flutter.
+// When the app starts, `ApiService.getPlaylists` calls this endpoint 
+// to fetch all the user's custom playlists directly from MongoDB.
 const getPlaylists = async (req, res) => {
   try {
     const playlists = await Playlist.find({ user_id: req.user.id });
